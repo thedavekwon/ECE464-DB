@@ -254,6 +254,7 @@ def test_8(engine, session):
         )
         assert list(result) == list(query)
 
+
 # Part C
 # Bi-Weekly Payment given a start date
 def test_9(engine, session):
@@ -270,20 +271,124 @@ def test_9(engine, session):
         .group_by(Reserve.sid)
         .all()
     )
-    with engine.begin() as connection:
-        result = connection.execute(
-            text(
-                """
-                select r.sid, s.sname, sum(r.price)
-                from reserves r
-                join sailors s on r.sid = s.sid
-                where r.day >= :start_date and r.day < :end_date
-                group by r.sid;
-            """
-            ),
-            {
-                "start_date": start_date_str,
-                "end_date": end_date_datetime.strftime(date_fomrat),
-            },
+    assert (31, "lubber", 12) in query
+    assert (23, "emilio", 2) in query
+
+
+# Check available boats given a date (Daily Inventory Control)
+def test_10(engine, session):
+    date_fomrat = "%Y-%m-%d"
+    date = "1998-11-06"
+    date = datetime.datetime.strptime(date, date_fomrat)
+    squery = session.query(Reserve.bid).filter(Reserve.day == date).subquery()
+    query = session.query(Boat.bid, Boat.bname).filter(~Boat.bid.in_(squery)).all()
+    query = list(map(lambda x: x[0], query))
+
+    assert 103 not in query
+    assert 105 not in query
+    assert 110 not in query
+
+
+# Check reserved boats given a date (Daily Inventory Control)
+def test_11(engine, session):
+    date_fomrat = "%Y-%m-%d"
+    date = "1998-11-06"
+    date = datetime.datetime.strptime(date, date_fomrat)
+    squery = session.query(Reserve.bid).filter(Reserve.day == date).subquery()
+    query = session.query(Boat.bid, Boat.bname).filter(Boat.bid.in_(squery)).all()
+    query = list(map(lambda x: x[0], query))
+
+    assert 103 in query
+    assert 105 in query
+    assert 110 in query
+
+
+# Get a sorted list of boats with the highest number of reservations
+def test_12(engine, session):
+    query = (
+        session.query(Reserve.bid, Boat.bname, func.count())
+        .join(Boat, Boat.bid == Reserve.bid)
+        .group_by(Reserve.bid)
+        .order_by(desc(func.count()))
+        .all()
+    )
+    assert (104, "Clipper", 5) == query[0]
+    assert (109, "Driftwood", 4) == query[1]
+
+
+# Get a sorted list of boats with the highest average rating
+# if there is a tie in rating, order by the highest number of reservations
+def test_13(engine, session):
+    query = (
+        session.query(
+            Reserve.bid,
+            Boat.bname,
+            func.count(),
+            label("boat_average_rating", func.avg(Reserve.rating)),
         )
-        assert list(result) == list(query)
+        .filter(Reserve.rating != -1)
+        .join(Boat, Boat.bid == Reserve.bid)
+        .group_by(Reserve.bid)
+        .order_by(desc("boat_average_rating"), desc(func.count()))
+        .all()
+    )
+
+    assert (107, "Marine", 1, 5.0) == query[0]
+    assert (103, "Clipper", 3, 4.0) == query[1]
+    assert (106, "Marine", 3, 4.0) == query[2]
+    assert (111, "Sooney", 1, 4.0) == query[3]
+
+
+# Get a list of boats by location
+def test_14(engine, session):
+    location = 1
+    query = session.query(Boat.bid, Boat.bname).filter(Boat.location == location).all()
+    query = list(map(lambda x: x[0], query))
+
+    assert 102 not in query
+    assert 112 not in query
+
+
+# Check reserved boats given a date and location (Daily Inventory Control)
+def test_15(engine, session):
+    date_fomrat = "%Y-%m-%d"
+    date = "1998-11-06"
+    location = 1
+    date = datetime.datetime.strptime(date, date_fomrat)
+    squery = session.query(Reserve.bid).filter(Reserve.day == date).subquery()
+    query = (
+        session.query(Boat.bid, Boat.bname)
+        .filter(Boat.location == location)
+        .filter(Boat.bid.in_(squery))
+        .all()
+    )
+    query = list(map(lambda x: x[0], query))
+
+    assert 103 in query
+
+
+# Get sorted list of boasts with highest average rating
+# when there is a tie in rating, order by highest number of reservation
+# given a location
+def test_16(engine, session):
+    location = 1
+    query = (
+        session.query(
+            Reserve.bid,
+            Boat.bname,
+            func.count(),
+            label("boat_average_rating", func.avg(Reserve.rating)),
+        )
+        .filter(Reserve.rating != -1)
+        .join(Boat, Boat.bid == Reserve.bid)
+        .filter(Boat.location == location)
+        .group_by(Reserve.bid)
+        .order_by(desc("boat_average_rating"), desc(func.count()))
+        .all()
+    )
+
+    assert (107, "Marine", 1, 5.0) == query[0]
+    assert (103, "Clipper", 3, 4.0) == query[1]
+    assert (106, "Marine", 3, 4.0) == query[2]
+    assert (104, "Clipper", 5, 3.4) == query[3]
+    assert (111, "Sooney", 1, 4.0) not in query

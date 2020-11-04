@@ -9,12 +9,6 @@ class Sailor(Base):
     sname = Column(String(30))
     rating = Column(Integer)
     age = Column(Float)
-    
-    # def __init__(self, sid, sname, rating, age):
-    #     self.sid = sid,
-    #     self.sname = sname,
-    #     self.rating = rating
-    #     self.age = age
         
     def __repr__(self):
         return f"<Sailor(id={self.sid}, name={self.sname}, rating={self.rating}, age={self.age})>"
