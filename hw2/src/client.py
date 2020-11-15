@@ -271,4 +271,3 @@ if __name__ == "__main__":
     config.read(args.c)
     client = MongoClient(config["MONGO"].get("host"), int(config["MONGO"].get("port")))
     rc = RedditClient(client.reddit)
-    l = rc.get_user_subreddit_from_comment_list()
