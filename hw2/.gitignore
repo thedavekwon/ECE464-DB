@@ -1,0 +1,4 @@
+venv
+data/db
+.vscode
+config/config.ini
