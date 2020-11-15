@@ -1,3 +1,5 @@
+## NoSQL (MongoDB) project with Webscraper
+
 ## Installation
 ```
 git clone https://github.com/thedavekwon/ECE464-DB.git
@@ -24,11 +26,15 @@ port =
 
 ## Usage
 ```
+# Get Top 1000 Subreddit List from http://redditlist.com
+# Configure subreddit list path in config/config.ini
+python src/scraper.py --gen -c config/config.ini
+
 # Run Scraper
 python src/scraper.py -c config/config.ini
 
 # Run Client
-python src/scraper.py -c config/config.ini
+python src/client.py -c config/config.ini
 
 # Test Client
 pytest test/test_client.py

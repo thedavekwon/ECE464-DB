@@ -22,7 +22,7 @@ def generate_subreddit_list(subreddit_list_path: str):
     for i in range(1, 9):
         page = requests.get(url + str(i))
         soup = BeautifulSoup(page.content, "html.parser")
-        # Subscriber
+        # Top 1000 by Subscriber
         sort_by_subscriber = soup.find_all("div", class_="span4 listing")[1]
         subreddits = sort_by_subscriber.find_all(
             "div", attrs={"data-target-filter": "sfw"}, class_="listing-item"
