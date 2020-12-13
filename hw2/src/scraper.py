@@ -13,6 +13,8 @@ from praw.models import Redditor, Submission, Comment
 from pymongo import MongoClient
 from bs4 import BeautifulSoup
 
+import concurrent.futures
+
 
 url = "http://redditlist.com/sfw?page="
 
@@ -163,7 +165,9 @@ if __name__ == "__main__":
             if not subreddit_list:
                 raise Exception("Empty subreddit list")
 
-            rs = RedditScraper(["Python"], config)
             subreddit_lists = np.array_split(subreddit_list, num_processes)
-            for i in range(num_processes):
-                Process(target=scrape, args=(subreddit_lists[i], config)).start()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=num_processes) as executor:
+                fs = [executor.submit(scrape, subreddit_list, config) for subreddit_list in subreddit_lists]
+                for future in concurrent.futures.as_completed(fs):
+                    print(future.result())
+                
